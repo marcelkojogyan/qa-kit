@@ -43,55 +43,55 @@
       "id": "QA-007",
       "title": "Playwright Fixtures and Selectors",
       "priority": 7,
-      "passes": false
+      "passes": true
     },
     {
       "id": "QA-008",
       "title": "Journey Files - Signup and Onboarding",
       "priority": 8,
-      "passes": false
+      "passes": true
     },
     {
       "id": "QA-009",
       "title": "Journey Files - Activation and Power User",
       "priority": 9,
-      "passes": false
+      "passes": true
     },
     {
       "id": "QA-010",
       "title": "Journey Files - What's New Feature",
       "priority": 10,
-      "passes": false
+      "passes": true
     },
     {
       "id": "QA-011",
       "title": "Persona Management Scripts",
       "priority": 11,
-      "passes": false
+      "passes": true
     },
     {
       "id": "QA-012",
       "title": "Storybook + Loki Configuration",
       "priority": 12,
-      "passes": false
+      "passes": true
     },
     {
       "id": "QA-013",
       "title": "Backend E2E Test Endpoints",
       "priority": 13,
-      "passes": false
+      "passes": true
     },
     {
       "id": "QA-014",
       "title": "Database Migration for persona_profiles",
       "priority": 14,
-      "passes": false
+      "passes": true
     },
     {
       "id": "QA-015",
       "title": "Comprehensive README Documentation",
       "priority": 15,
-      "passes": false
+      "passes": true
     },
     {
       "id": "QA-016",

@@ -74,9 +74,9 @@ export const test = base.extend<QaFixtures & QaOptions, QaWorkerFixtures>({
   // Options (configurable)
   // ===========================================================================
 
-  personaId: [null, { option: true }],
-  autoLogin: [true, { option: true }],
-  storageStatePath: [null, { option: true }],
+  personaId: null,
+  autoLogin: true,
+  storageStatePath: null,
 
   // ===========================================================================
   // Worker Fixtures
@@ -86,17 +86,17 @@ export const test = base.extend<QaFixtures & QaOptions, QaWorkerFixtures>({
     await use(browserName);
   }, { scope: 'worker' }],
 
-  viewportTag: [async ({ viewport, isMobile }, use) => {
+  viewportTag: [async ({ isMobile }, use) => {
     let tag = 'desktop';
     if (isMobile) {
-      tag = viewport?.width && viewport.width < 600 ? 'mobile' : 'tablet';
+      tag = 'mobile';
     }
     await use(tag);
   }, { scope: 'worker' }],
 
   isMobile: [async ({ isMobile }, use) => {
     await use(isMobile ?? false);
-  }, { scope: 'worker' }],
+  }, { scope: 'test' }],
 
   // ===========================================================================
   // Test Fixtures
@@ -184,7 +184,7 @@ export const test = base.extend<QaFixtures & QaOptions, QaWorkerFixtures>({
  */
 export function testWithPersona(personaId: string) {
   return test.extend<{}, { personaId: string }>({
-    personaId: [personaId, { scope: 'test', option: true }],
+    personaId: [personaId, { scope: 'test' }],
   });
 }
 
