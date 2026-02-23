@@ -35,3 +35,4 @@ pnpm-debug.log*
 # Storage states (contain auth tokens and persona profiles)
 **/storage-state*.json
 storage-state/
+.mcp.json

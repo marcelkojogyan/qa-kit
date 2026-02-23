@@ -184,7 +184,240 @@ await vrtCapture(page, {
 });
 ```
 
-## Adding to a New Project
+## Using QA Kit with Your Own Project
+
+QA Kit now supports **any web project** through a simple configuration system! No need to modify core files.
+
+### Quick Setup
+
+1. **Copy the configuration template**:
+   ```bash
+   cp config/template.config.ts config/yourproject.config.ts
+   ```
+
+2. **Configure your project** by editing `yourproject.config.ts`:
+   ```typescript
+   const yourProjectConfig: ProjectConfig = {
+     name: 'yourproject',
+     baseUrl: 'http://localhost:3000',
+     
+     auth: {
+       loginPath: '/login',
+       emailSelector: '[data-testid="email-input"]',
+       passwordSelector: '[data-testid="password-input"]',
+       submitSelector: '[data-testid="login-button"]',
+       successUrlPattern: /\/dashboard/,
+     },
+     
+     pages: [
+       {
+         path: '/users',
+         name: 'users',
+         hasCreate: true,
+         createButton: '[data-testid="create-user"]',
+         fields: [
+           {
+             selector: '[data-testid="user-name"]',
+             value: 'Test User',
+             type: 'text',
+             required: true,
+           },
+           // ... more fields
+         ],
+       },
+       // ... more pages
+     ],
+   };
+   ```
+
+3. **Set up environment variables**:
+   ```bash
+   E2E_SWEEP_EMAIL=your-test-user@example.com
+   E2E_SWEEP_PASSWORD=your-test-password
+   ```
+
+4. **Run bug sweep on your project**:
+   ```bash
+   QA_PROJECT=yourproject pnpm qa:sweep
+   ```
+
+### Configuration Guide
+
+#### Basic Project Information
+
+```typescript
+{
+  name: 'yourproject',                    // Used in reports
+  baseUrl: 'http://localhost:3000',       // Your app's base URL
+  apiUrl: 'http://localhost:3001/api',    // Optional API URL
+}
+```
+
+#### Authentication Flow
+
+```typescript
+auth: {
+  loginPath: '/login',                               // Your login page path
+  emailSelector: '[data-testid="email-input"]',     // Email input selector
+  passwordSelector: '[data-testid="password-input"]', // Password input selector
+  submitSelector: '[data-testid="login-button"]',   // Submit button selector
+  successUrlPattern: /\/dashboard/,                  // Regex for success URL
+}
+```
+
+#### Page Configuration
+
+For **CRUD pages** (with create functionality):
+
+```typescript
+{
+  path: '/users',
+  name: 'users',
+  hasCreate: true,
+  createButton: '[data-testid="create-user"]',
+  formSelector: '[data-testid="user-modal"]',     // Optional: form container
+  submitButton: '[data-testid="save-user"]',      // Optional: submit button
+  fields: [
+    {
+      selector: '[data-testid="user-name"]',
+      value: 'Test User',
+      type: 'text',
+      required: true,
+    },
+    {
+      selector: '[data-testid="user-email"]',
+      value: 'test@example.com',
+      type: 'email',
+      required: true,
+    },
+    {
+      selector: '[data-testid="user-role"]',
+      value: 'Admin',
+      type: 'select',
+      selectBy: 'text',    // 'text' or 'value'
+    },
+  ],
+}
+```
+
+For **read-only pages** (no create functionality):
+
+```typescript
+{
+  path: '/dashboard',
+  name: 'dashboard',
+  hasCreate: false,    // Just tests that page loads without errors
+}
+```
+
+#### Field Types
+
+| Type | Description | Example Value |
+|------|-------------|---------------|
+| `text` | Text input | `"Test User"` |
+| `email` | Email input | `"test@example.com"` |
+| `number` | Numeric input | `42` |
+| `date` | Date input | `"2024-01-01"` |
+| `select` | Dropdown | `"Option Text"` |
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `QA_PROJECT` | No | Project config to use (default: `piro`) |
+| `E2E_SWEEP_EMAIL` | Yes | Test user email |
+| `E2E_SWEEP_PASSWORD` | Yes | Test user password |
+| `APP_BASE_URL` | No | Override base URL from config |
+
+### Running Tests
+
+```bash
+# Default (uses Piro configuration)
+pnpm qa:sweep
+
+# Use your project configuration
+QA_PROJECT=yourproject pnpm qa:sweep
+
+# Run in headless mode
+QA_PROJECT=yourproject pnpm qa:sweep:headless
+
+# Override base URL
+APP_BASE_URL=https://staging.yourapp.com QA_PROJECT=yourproject pnpm qa:sweep
+```
+
+### Common Selector Patterns
+
+Use these patterns in your configuration:
+
+```typescript
+// Data-testid (recommended)
+'[data-testid="element-name"]'
+
+// Multiple selectors as fallbacks (comma-separated)
+'[data-testid="submit"], button[type="submit"], button:has-text("Save")'
+
+// By attribute
+'input[type="email"]'
+'button[type="submit"]'
+
+// By text content
+'button:has-text("Create")'
+'button:has-text("Save")'
+
+// By ARIA attributes
+'[aria-label="Close"]'
+'[role="dialog"]'
+```
+
+### What Gets Tested
+
+For each configured page, QA Kit will:
+
+1. **Navigate** to the page and verify it loads
+2. **Check for errors** (console errors, UI errors, network failures)
+3. **Test create functionality** (if `hasCreate: true`):
+   - Click the create button
+   - Fill out the form with configured test data
+   - Submit the form
+   - Check for validation errors
+4. **Capture screenshots** of any errors found
+5. **Generate a detailed JSON report**
+
+### Advanced Features
+
+#### Custom Error Selectors
+
+```typescript
+// In your project config, you can specify additional error selectors
+bugSweep: {
+  errorSelectors: [
+    '.your-custom-error-class',
+    '[data-testid="error-banner"]',
+  ],
+  loadingSelectors: [
+    '.your-loading-spinner',
+  ],
+}
+```
+
+#### Multiple Projects
+
+You can maintain configurations for multiple environments:
+
+```bash
+# Development
+QA_PROJECT=yourproject pnpm qa:sweep
+
+# Staging
+QA_PROJECT=yourproject-staging pnpm qa:sweep
+
+# Different product
+QA_PROJECT=yourother-app pnpm qa:sweep
+```
+
+## Adding to a New Project (Legacy Adapter Method)
+
+For advanced lifecycle testing and persona management, you can still create custom adapters:
 
 ### 1. Copy the qa-kit folder
 

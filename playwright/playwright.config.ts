@@ -17,8 +17,8 @@ const ACTION_TIMEOUT = 15000;
 const NAVIGATION_TIMEOUT = 30000;
 
 // Video and trace configuration
-const VIDEO = (process.env.VIDEO || 'on-failure') as 'on' | 'off' | 'on-failure' | 'retain-on-failure';
-const TRACE = (process.env.TRACE || 'on-failure') as 'on' | 'off' | 'on-failure' | 'retain-on-failure';
+const VIDEO = (process.env.VIDEO || 'retain-on-failure') as 'on' | 'off' | 'retain-on-failure';
+const TRACE = (process.env.TRACE || 'retain-on-failure') as 'on' | 'off' | 'retain-on-failure';
 
 // Workers configuration
 const WORKERS = CI ? parseInt(process.env.CI_WORKERS || '4', 10) : 1;

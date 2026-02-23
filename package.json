@@ -33,6 +33,8 @@
     "qa:loki:test": "loki test --config storybook/loki.config.js",
     "qa:loki:update": "loki update --config storybook/loki.config.js",
     "qa:loki:approve": "loki approve --config storybook/loki.config.js",
+    "qa:sweep": "APP_BASE_URL=${APP_BASE_URL:-http://localhost:3000} pnpm exec playwright test scripts/bug-sweep.ts --headed",
+    "qa:sweep:headless": "APP_BASE_URL=${APP_BASE_URL:-http://localhost:3000} pnpm exec playwright test scripts/bug-sweep.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
