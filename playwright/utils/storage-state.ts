@@ -3,6 +3,10 @@ import * as path from 'path';
 import type { BrowserContext, Page } from '@playwright/test';
 import type { Persona } from '../../adapters/base.adapter.js';
 import { getAdapter } from '../../adapters/index.js';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // =============================================================================
 // Storage State Management
