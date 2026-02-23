@@ -1,0 +1,58 @@
+{
+  "name": "@piro/qa-kit",
+  "version": "1.0.0",
+  "description": "Reusable QA + Visual Regression Testing Kit with persistent personas and lifecycle journeys",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "qa:install": "pnpm install && pnpm exec playwright install --with-deps",
+    "qa:doctor": "tsx scripts/doctor.ts",
+    "qa:vrt:up": "docker-compose -f docker/vrt/docker-compose.yml up -d",
+    "qa:vrt:down": "docker-compose -f docker/vrt/docker-compose.yml down",
+    "qa:vrt:logs": "docker-compose -f docker/vrt/docker-compose.yml logs -f",
+    "qa:vrt:reset": "docker-compose -f docker/vrt/docker-compose.yml down -v && docker-compose -f docker/vrt/docker-compose.yml up -d",
+    "qa:bootstrap": "tsx scripts/bootstrap-persona.ts",
+    "qa:reset": "tsx scripts/reset-persona.ts",
+    "qa:run": "tsx scripts/run-journey.ts",
+    "qa:run:headed": "HEADED=true tsx scripts/run-journey.ts",
+    "qa:run:ci": "CI=true tsx scripts/run-journey.ts",
+    "qa:visual": "pnpm exec playwright test --project=visual-smoke",
+    "qa:whatsnew": "tsx scripts/seed-release-note.ts && pnpm exec playwright test journeys/whats-new.journey.ts",
+    "qa:persona:create": "tsx scripts/create-persona.ts",
+    "qa:test": "pnpm exec playwright test",
+    "qa:test:headed": "pnpm exec playwright test --headed",
+    "qa:test:debug": "pnpm exec playwright test --debug",
+    "qa:test:ui": "pnpm exec playwright test --ui",
+    "qa:report": "pnpm exec playwright show-report artifacts/playwright-report",
+    "qa:trace": "pnpm exec playwright show-trace",
+    "qa:storybook": "cd ../piro/frontend && pnpm storybook",
+    "qa:loki:test": "loki test --config storybook/loki.config.js",
+    "qa:loki:update": "loki update --config storybook/loki.config.js",
+    "qa:loki:approve": "loki approve --config storybook/loki.config.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.50.0",
+    "@visual-regression-tracker/agent-playwright": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "loki": "^0.35.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  },
+  "peerDependencies": {
+    "@storybook/react": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@storybook/react": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,131 @@
+# Visual Regression Tracker (VRT) - Local Development Setup
+# https://github.com/Visual-Regression-Tracker/Visual-Regression-Tracker
+#
+# Usage:
+#   pnpm qa:vrt:up    - Start all services
+#   pnpm qa:vrt:down  - Stop all services
+#   pnpm qa:vrt:logs  - View logs
+
+version: "3.8"
+
+services:
+  # PostgreSQL database for VRT
+  vrt-postgres:
+    image: postgres:15-alpine
+    container_name: vrt-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${VRT_DB_USER:-vrt}
+      POSTGRES_PASSWORD: ${VRT_DB_PASSWORD:-vrtpassword}
+      POSTGRES_DB: ${VRT_DB_NAME:-vrt}
+    volumes:
+      - vrt-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${VRT_DB_USER:-vrt}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vrt-network
+
+  # MinIO S3-compatible storage for screenshots
+  vrt-minio:
+    image: minio/minio:latest
+    container_name: vrt-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${VRT_S3_ACCESS_KEY:-minioaccess}
+      MINIO_ROOT_PASSWORD: ${VRT_S3_SECRET_KEY:-miniosecret}
+    volumes:
+      - vrt-minio-data:/data
+    ports:
+      - "${VRT_MINIO_PORT:-9000}:9000"
+      - "${VRT_MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - vrt-network
+
+  # MinIO bucket initialization
+  vrt-minio-init:
+    image: minio/mc:latest
+    container_name: vrt-minio-init
+    depends_on:
+      vrt-minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set vrt http://vrt-minio:9000 ${VRT_S3_ACCESS_KEY:-minioaccess} ${VRT_S3_SECRET_KEY:-miniosecret};
+      mc mb -p vrt/${VRT_S3_BUCKET:-vrt-images} || true;
+      mc anonymous set public vrt/${VRT_S3_BUCKET:-vrt-images};
+      exit 0;
+      "
+    networks:
+      - vrt-network
+
+  # VRT API Backend
+  vrt-api:
+    image: visualregressiontracker/api:latest
+    container_name: vrt-api
+    restart: unless-stopped
+    depends_on:
+      vrt-postgres:
+        condition: service_healthy
+      vrt-minio:
+        condition: service_healthy
+      vrt-minio-init:
+        condition: service_completed_successfully
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${VRT_DB_USER:-vrt}:${VRT_DB_PASSWORD:-vrtpassword}@vrt-postgres:5432/${VRT_DB_NAME:-vrt}
+      # JWT
+      JWT_SECRET: ${VRT_JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_LIFE_TIME: ${VRT_JWT_LIFETIME:-1d}
+      # S3/MinIO
+      S3_ENDPOINT: http://vrt-minio:9000
+      S3_REGION: ${VRT_S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${VRT_S3_ACCESS_KEY:-minioaccess}
+      S3_SECRET_KEY: ${VRT_S3_SECRET_KEY:-miniosecret}
+      S3_BUCKET: ${VRT_S3_BUCKET:-vrt-images}
+      # App
+      APP_FRONTEND_URL: http://localhost:${VRT_UI_PORT:-8080}
+      BODY_PARSER_JSON_LIMIT: 100mb
+    ports:
+      - "${VRT_API_PORT:-4200}:4200"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4200/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - vrt-network
+
+  # VRT UI Frontend
+  vrt-ui:
+    image: visualregressiontracker/ui:latest
+    container_name: vrt-ui
+    restart: unless-stopped
+    depends_on:
+      vrt-api:
+        condition: service_healthy
+    environment:
+      REACT_APP_API_URL: http://localhost:${VRT_API_PORT:-4200}
+    ports:
+      - "${VRT_UI_PORT:-8080}:80"
+    networks:
+      - vrt-network
+
+volumes:
+  vrt-postgres-data:
+    name: vrt-postgres-data
+  vrt-minio-data:
+    name: vrt-minio-data
+
+networks:
+  vrt-network:
+    name: vrt-network
+    driver: bridge

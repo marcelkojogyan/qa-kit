@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@adapters/*": ["adapters/*"],
+      "@personas/*": ["personas/*"],
+      "@journeys/*": ["journeys/*"],
+      "@playwright/*": ["playwright/*"],
+      "@scripts/*": ["scripts/*"],
+      "@utils/*": ["playwright/utils/*"]
+    },
+    "types": ["node"]
+  },
+  "include": [
+    "adapters/**/*.ts",
+    "personas/**/*.ts",
+    "journeys/**/*.ts",
+    "playwright/**/*.ts",
+    "scripts/**/*.ts",
+    "storybook/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "artifacts"
+  ]
+}
