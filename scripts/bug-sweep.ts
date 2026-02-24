@@ -17,6 +17,12 @@ import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 
+// Ralph-inspired modules
+import { ResourceGuard } from '../core/resource-guard.js';
+import { FailureClassifier, type Evidence, type Classification } from '../core/failure-classifier.js';
+import { EvidenceCollector, type FailureInfo, type EvidenceBundle } from '../core/evidence-collector.js';
+import { PageHealthScorer, type PageHealthReport } from '../core/page-health.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -34,6 +40,9 @@ interface BugReport {
   pagesVisited: number;
   bugsFound: number;
   summary: string;
+  // Ralph-inspired enhancements
+  pageHealthScores?: Record<string, PageHealthReport>;
+  resourceUsage?: any;
 }
 
 interface Bug {
@@ -44,6 +53,10 @@ interface Bug {
   screenshot?: string;
   consoleErrors: string[];
   networkErrors: NetworkError[];
+  // Ralph-inspired enhancements
+  classification?: Classification;
+  evidencePath?: string;
+  evidenceBundle?: EvidenceBundle;
 }
 
 interface NetworkError {
@@ -121,8 +134,29 @@ test.describe('Bug Sweep - Comprehensive CRUD Testing', () => {
   let bugs: Bug[] = [];
   let consoleErrors: string[] = [];
   let networkErrors: NetworkError[] = [];
+  
+  // Ralph-inspired modules
+  let resourceGuard: ResourceGuard;
+  let failureClassifier: FailureClassifier;
+  let evidenceCollector: EvidenceCollector;
+  let pageHealthScorer: PageHealthScorer;
+  let pageHealthScores: Record<string, PageHealthReport> = {};
 
   test.beforeAll(async ({ browser }) => {
+    // Initialize Ralph-inspired modules
+    resourceGuard = new ResourceGuard('smoke', {
+      maxRunTime: 15 * 60 * 1000, // 15 minutes max
+      maxMemoryMB: 512,
+      testTimeout: 30000
+    });
+    
+    failureClassifier = new FailureClassifier();
+    evidenceCollector = new EvidenceCollector();
+    pageHealthScorer = new PageHealthScorer();
+
+    // Validate environment
+    resourceGuard.validateEnvironment();
+
     // Create directories
     if (!fs.existsSync(ARTIFACTS_DIR)) {
       fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
@@ -137,13 +171,21 @@ test.describe('Bug Sweep - Comprehensive CRUD Testing', () => {
 
     // Set up error listeners
     setupErrorListeners(page);
+    
+    // Attach page health scorer to monitor errors
+    await pageHealthScorer.attachToPage(page);
 
     // Authenticate
     await authenticateUser(page);
   });
 
   test.afterAll(async () => {
-    // Generate final report
+    // Clean up Ralph modules
+    if (resourceGuard) {
+      await resourceGuard.cleanup();
+    }
+
+    // Generate final report with Ralph enhancements
     const report: BugReport = {
       timestamp: new Date().toISOString(),
       targetUrl: BASE_URL,
@@ -151,6 +193,8 @@ test.describe('Bug Sweep - Comprehensive CRUD Testing', () => {
       pagesVisited: TARGET_PAGES.length,
       bugsFound: bugs.length,
       summary: generateSummary(),
+      pageHealthScores,
+      resourceUsage: resourceGuard?.getResourceUsage()
     };
 
     // Write report to file
@@ -161,6 +205,17 @@ test.describe('Bug Sweep - Comprehensive CRUD Testing', () => {
     console.log(`Pages visited: ${report.pagesVisited}`);
     console.log(`Bugs found: ${report.bugsFound}`);
     console.log(`Report saved: ${reportPath}`);
+    
+    // Show page health summary
+    if (Object.keys(pageHealthScores).length > 0) {
+      console.log(`\n=== PAGE HEALTH SUMMARY ===`);
+      Object.entries(pageHealthScores).forEach(([pageName, health]) => {
+        console.log(`${pageName}: ${health.score}/100`);
+        if (health.issues.length > 0) {
+          health.issues.forEach(issue => console.log(`  • ${issue}`));
+        }
+      });
+    }
 
     await context.close();
   });
@@ -170,8 +225,25 @@ test.describe('Bug Sweep - Comprehensive CRUD Testing', () => {
     test(`Bug sweep: ${targetPage.name}`, async () => {
       console.log(`\n--- Testing ${targetPage.name} ---`);
       
+      // Resource guard check
+      if (!resourceGuard.canProceed()) {
+        console.log(`🚫 Skipping ${targetPage.name} - circuit breaker is open`);
+        return;
+      }
+      
+      // Reset page health scorer for new page
+      pageHealthScorer.reset();
+      
       try {
         await testPage(page, targetPage);
+        
+        // Assess page health after testing
+        const healthReport = await pageHealthScorer.assessPageHealth(page);
+        pageHealthScores[targetPage.name] = healthReport;
+        
+        resourceGuard.incrementTestCount();
+        resourceGuard.recordCircuitBreakerSuccess();
+        
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.log(`Error testing ${targetPage.name}: ${errorMessage}`);
@@ -182,6 +254,8 @@ test.describe('Bug Sweep - Comprehensive CRUD Testing', () => {
           error: errorMessage,
           type: 'exception',
         });
+        
+        resourceGuard.recordCircuitBreakerFailure();
       }
     });
   }
@@ -750,6 +824,48 @@ test.describe('Bug Sweep - Comprehensive CRUD Testing', () => {
       
     } catch (error) {
       console.log(`Failed to capture screenshot: ${error}`);
+    }
+    
+    // Ralph-inspired enhancements
+    try {
+      // 1. Classify the failure
+      const evidence: Evidence = {
+        errorMessage: bug.error,
+        consoleErrors: consoleErrors.map(error => ({
+          type: 'error',
+          text: error,
+          timestamp: Date.now()
+        })),
+        networkFailures: networkErrors.map(error => ({
+          url: error.url,
+          status: error.status,
+          statusText: '',
+          failure: error.body
+        })),
+        url: page.url(),
+        timestamp: new Date().toISOString()
+      };
+      
+      const classification = await failureClassifier.classify(evidence);
+      bug.classification = classification;
+      
+      console.log(`🧠 Classified as: ${classification.type} (${(classification.confidence * 100).toFixed(1)}% confidence)`);
+      
+      // 2. Collect comprehensive evidence
+      const failureInfo: FailureInfo = {
+        name: `${bugData.page}_${bugData.action}`,
+        error: bug.error,
+        type: bugData.type
+      };
+      
+      const evidenceBundle = await evidenceCollector.collect(page, failureInfo);
+      bug.evidencePath = `evidence/${evidenceBundle.id}`;
+      bug.evidenceBundle = evidenceBundle;
+      
+      console.log(`🔍 Evidence collected: ${bug.evidencePath}`);
+      
+    } catch (error) {
+      console.log(`Failed to enhance bug with Ralph analysis: ${error}`);
     }
     
     bugs.push(bug);
