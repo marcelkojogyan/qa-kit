@@ -2,6 +2,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Page, Locator, PageScreenshotOptions } from '@playwright/test';
 import { prepareForScreenshot } from './stable-ui.js';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // =============================================================================
 // Screenshot Utilities

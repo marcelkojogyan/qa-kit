@@ -1,6 +1,10 @@
 import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/test';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables from qa-kit/.env
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
